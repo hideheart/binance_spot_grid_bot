@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>現貨網格交易 - Dashboard</title>
+    <!-- 引入 Outfit 現代字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0e11;
+            --card-bg: rgba(22, 26, 30, 0.85);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #f0b90b; /* 幣安黃 */
+            --primary-glow: rgba(240, 185, 11, 0.15);
+            --text-color: #eaecef;
+            --text-muted: #848e9c;
+            --success: #0ecb81;
+            --success-glow: rgba(14, 203, 129, 0.15);
+            --danger: #f6465d;
+            --info: #3861fb;
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 24px;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(240, 185, 11, 0.03) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(14, 203, 129, 0.03) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* 頂部排版 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 16px 24px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo-section h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-section span {
+            font-size: 12px;
+            background: rgba(240, 185, 11, 0.1);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(240, 185, 11, 0.2);
+            font-weight: 600;
+        }
+
+        .price-info {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .price-block {
+            text-align: right;
+        }
+
+        .price-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .price-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--success);
+            text-shadow: 0 0 10px var(--success-glow);
+        }
+
+        .update-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        /* 儀表板卡片 grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: transparent;
+            transition: var(--transition);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .kpi-card.total-profit::before { background: var(--primary); }
+        .kpi-card.today-profit::before { background: var(--success); }
+        .kpi-card.d7-profit::before { background: var(--info); }
+        .kpi-card.d30-profit::before { background: #9b51e0; }
+
+        .kpi-card .card-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-card .card-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .kpi-card.total-profit .card-value {
+            color: var(--primary);
+            text-shadow: 0 0 15px var(--primary-glow);
+        }
+        .kpi-card.today-profit .card-value {
+            color: var(--success);
+            text-shadow: 0 0 15px var(--success-glow);
+        }
+
+        .kpi-card .card-unit {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-left: 6px;
+            font-weight: 400;
+        }
+
+        /* 圖表區塊 */
+        .chart-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 992px) {
+            .chart-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .chart-card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        /* 網格統計與最近成交 */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 992px) {
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .details-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .details-card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* 統計指標行 */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-buy {
+            background: rgba(14, 203, 129, 0.12);
+            color: var(--success);
+        }
+
+        .badge-sell {
+            background: rgba(246, 70, 93, 0.12);
+            color: var(--danger);
+        }
+
+        .badge-pending {
+            background: rgba(240, 185, 11, 0.12);
+            color: var(--primary);
+        }
+
+        /* 表格樣式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            padding-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 0;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-price {
+            font-weight: 500;
+        }
+
+        .table-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .profit-pos {
+            color: var(--success);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部導航欄 -->
+    <header>
+        <div class="logo-section">
+            <h1>現貨網格交易 <span id="pair-symbol">BTCFDUSD</span></h1>
+        </div>
+        <div class="price-info">
+            <div class="price-block">
+                <div class="price-label">市場價格</div>
+                <div class="price-value" id="current-price">--.--</div>
+            </div>
+            <div>
+                <div class="update-time">最後更新</div>
+                <div class="update-time" id="last-update" style="font-weight:500;">--:--:--</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- KPI 數據看板 -->
+    <div class="kpi-grid">
+        <div class="kpi-card total-profit">
+            <div class="card-title">累計總獲利</div>
+            <div class="card-value" id="profit-total">0.0000<span class="card-unit">FDUSD</span></div>
+        </div>
+        <div class="kpi-card today-profit">
+            <div class="card-title">今日獲利</div>
+            <div class="card-value" id="profit-today">0.0000<span class="card-unit">FDUSD</span></div>
+        </div>
+        <div class="kpi-card d7-profit">
+            <div class="card-title">近 7 天獲利</div>
+            <div class="card-value" id="profit-7d">0.0000<span class="card-unit">FDUSD</span></div>
+        </div>
+        <div class="kpi-card d30-profit">
+            <div class="card-title">近 30 天獲利</div>
+            <div class="card-value" id="profit-30d">0.0000<span class="card-unit">FDUSD</span></div>
+        </div>
+    </div>
+
+    <!-- 圖表區 -->
+    <div class="chart-container">
+        <div class="chart-card">
+            <h2>30日累積收益走向 (FDUSD)</h2>
+            <div class="chart-wrapper">
+                <canvas id="cumulativeChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h2>30日每日收益統計 (FDUSD)</h2>
+            <div class="chart-wrapper">
+                <canvas id="dailyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 詳細統計與交易紀錄 -->
+    <div class="details-grid">
+        <div class="details-card">
+            <h2>網格運行狀態</h2>
+            <div class="stat-row">
+                <div class="stat-label">等待買入掛單 (PENDING_BUY)</div>
+                <div class="stat-value"><span class="badge badge-pending" id="stat-pending-buy">0</span></div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-label">已買入待掛賣 (FILLED_BUY)</div>
+                <div class="stat-value"><span class="badge badge-buy" id="stat-filled-buy">0</span></div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-label">等待賣出掛單 (PENDING_SELL)</div>
+                <div class="stat-value"><span class="badge badge-sell" id="stat-pending-sell">0</span></div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-label">已成交套利 (FILLED_SELL)</div>
+                <div class="stat-value"><span class="badge" style="background:rgba(255,255,255,0.08);" id="stat-filled-sell">0</span></div>
+            </div>
+        </div>
+
+        <div class="details-card">
+            <h2>最近套利紀錄 (Recent Sales)</h2>
+            <table id="recent-sales-table">
+                <thead>
+                    <tr>
+                        <th>時間</th>
+                        <th>網格格點</th>
+                        <th>買入價格</th>
+                        <th>賣出價格</th>
+                        <th>套利利潤</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted);">載入中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let cumulativeChart = null;
+        let dailyChart = null;
+
+        // 格式化時間戳
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '--';
+            const date = new Date(timestamp * 1000);
+            return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        }
+
+        // 初始化圖表
+        function initCharts(labels, dailyData, cumulativeData) {
+            const ctxCumulative = document.getElementById('cumulativeChart').getContext('2d');
+            cumulativeChart = new Chart(ctxCumulative, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '累積收益',
+                        data: cumulativeData,
+                        borderColor: '#f0b90b',
+                        backgroundColor: 'rgba(240, 185, 11, 0.1)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                            ticks: { color: '#848e9c' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                            ticks: { color: '#848e9c' }
+                        }
+                    }
+                }
+            });
+
+            const ctxDaily = document.getElementById('dailyChart').getContext('2d');
+            dailyChart = new Chart(ctxDaily, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '每日收益',
+                        data: dailyData,
+                        backgroundColor: '#0ecb81',
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#848e9c' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                            ticks: { color: '#848e9c' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新圖表數據
+        function updateCharts(labels, dailyData, cumulativeData) {
+            if (!cumulativeChart || !dailyChart) {
+                initCharts(labels, dailyData, cumulativeData);
+            } else {
+                cumulativeChart.data.labels = labels;
+                cumulativeChart.data.datasets[0].data = cumulativeData;
+                cumulativeChart.update();
+
+                dailyChart.data.labels = labels;
+                dailyChart.data.datasets[0].data = dailyData;
+                dailyChart.update();
+            }
+        }
+
+        // 載入儀表板數據
+        async function fetchSummary() {
+            try {
+                const response = await fetch('/api/summary');
+                const data = await response.json();
+                
+                document.getElementById('pair-symbol').innerText = data.symbol;
+                document.getElementById('current-price').innerText = data.current_price.toFixed(2);
+                document.getElementById('last-update').innerText = data.update_time;
+                
+                document.getElementById('profit-total').innerHTML = `${data.profit_total.toFixed(4)}<span class="card-unit">FDUSD</span>`;
+                document.getElementById('profit-today').innerHTML = `${data.profit_today.toFixed(4)}<span class="card-unit">FDUSD</span>`;
+                document.getElementById('profit-7d').innerHTML = `${data.profit_7d.toFixed(4)}<span class="card-unit">FDUSD</span>`;
+                document.getElementById('profit-30d').innerHTML = `${data.profit_30d.toFixed(4)}<span class="card-unit">FDUSD</span>`;
+                
+                // 統計數據
+                document.getElementById('stat-pending-buy').innerText = data.stats.pending_buy;
+                document.getElementById('stat-filled-buy').innerText = data.stats.filled_buy;
+                document.getElementById('stat-pending-sell').innerText = data.stats.pending_sell;
+                document.getElementById('stat-filled-sell').innerText = data.stats.filled_sell;
+
+                // 渲染最近成交表格
+                const tbody = document.querySelector('#recent-sales-table tbody');
+                tbody.innerHTML = '';
+                if (data.recent_sales.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">尚無成交紀錄</td></tr>`;
+                } else {
+                    data.recent_sales.forEach(sale => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="table-time">${formatTimestamp(sale.sell_filled_time)}</td>
+                            <td>${sale.grid_price.toFixed(2)}</td>
+                            <td class="table-price">${sale.buy_filled_price.toFixed(2)}</td>
+                            <td class="table-price" style="color:var(--danger);">${sale.sell_filled_price.toFixed(2)}</td>
+                            <td class="profit-pos">+${sale.profit.toFixed(4)} FDUSD</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('獲取 Summary 數據失敗:', error);
+            }
+        }
+
+        async function fetchCharts() {
+            try {
+                const response = await fetch('/api/charts');
+                const data = await response.json();
+                updateCharts(data.labels, data.daily, data.cumulative);
+            } catch (error) {
+                console.error('獲取圖表數據失敗:', error);
+            }
+        }
+
+        // 頁面載入執行一次
+        fetchSummary();
+        fetchCharts();
+
+        // 設定每 5 秒刷新一次
+        setInterval(fetchSummary, 5000);
+        // 圖表每 60 秒更新一次即可
+        setInterval(fetchCharts, 60000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+# 敏感設定檔
+.env
+.env.local
+.env.*
+
+# 資料庫檔案 (SQLite 及其交易日誌)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+# 特定備份資料庫
+grid - 複製.db
+
+# 日誌資料夾
+log/
+*.log
+
+# Python 虛擬環境
+.venv/
+venv/
+ENV/
+
+# Python 快取與編譯檔
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# IDE 與編輯器設定
+.vscode/
+.idea/
+.cursor/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# 系統暫存檔
+.DS_Store
+Thumbs.db

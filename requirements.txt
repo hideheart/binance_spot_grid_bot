@@ -1,0 +1,4 @@
+# 專案依賴套件
+python-dotenv
+binance-sdk-spot
+# 若有其他非標準庫，可在下方自行新增

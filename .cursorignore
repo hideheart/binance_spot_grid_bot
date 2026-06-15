@@ -1,0 +1,4 @@
+.env
+grid.db
+test_grid.db
+*.log
