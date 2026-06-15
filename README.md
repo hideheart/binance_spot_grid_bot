@@ -65,6 +65,12 @@ pip install -r requirements.txt
    > [!IMPORTANT]
    > **請絕對不要將 `.env` 檔案提交到公開的 Git 倉庫！** 專案的 `.gitignore` 檔案已預設將其排除，請務必保持其排除狀態以維護您的帳戶資產安全。
 
+### 4. 自訂網格參數 (選用)
+您可以編輯 [`config.py`](file:///d:/GitRepo/Binance/現貨網格/config.py) 來調整網格運行參數以符合您的投資策略：
+* **`GRID_INTERVAL`**：網格間距（例如：`20.0` 代表每間隔 20 FDUSD 掛一格）。
+* **`TRADE_AMOUNT`**：單筆掛單金額（例如：`10.0` 代表每筆買/賣單使用等值 10 FDUSD 的資金量）。
+* **`GRID_NUM`**：網格數量（控制基準現價上下要補掛的單邊網格格數）。
+
 ---
 
 ## 🚀 啟動與使用
