@@ -167,7 +167,6 @@ class DashboardHTTPHandler(BaseHTTPRequestHandler):
         elif self.path == "/api/summary":
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             
             curr_price = get_current_price()
@@ -194,7 +193,6 @@ class DashboardHTTPHandler(BaseHTTPRequestHandler):
         elif self.path == "/api/charts":
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             
             chart_data = get_daily_chart_data(30)
@@ -204,7 +202,6 @@ class DashboardHTTPHandler(BaseHTTPRequestHandler):
             # 獲取所有目前活跃網格列表
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             
             active_grids = db.get_active_grids()
@@ -217,7 +214,7 @@ class DashboardHTTPHandler(BaseHTTPRequestHandler):
 
 def run_server(port=5000):
     db.init_db()
-    server_address = ('', port)
+    server_address = ('127.0.0.1', port)
     httpd = HTTPServer(server_address, DashboardHTTPHandler)
     print(f"==================================================")
     print(f"網格交易 Dashboard 後端已在 http://localhost:{port} 啟動")
