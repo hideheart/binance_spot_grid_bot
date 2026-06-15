@@ -2,6 +2,8 @@
 
 這是一個基於幣安 (Binance) Spot API 與 WebSocket Streams 開發的 BTC/FDUSD 現貨網格交易系統。系統採用 WebSocket 訂閱即時行情，並具備 Rest API 自動重連與自癒機制，同時附帶一個簡易的網頁版監控 Dashboard。
 
+![Dashboard 預覽](web/dashboard.png)
+
 ## 🌟 核心特色
 * **即時價格監聽**：透過 WebSocket Streams 取得即時市場行情。
 * **半開/死連線檢測**：加入 120 秒超時心跳檢測機制，自動斷線重連。
