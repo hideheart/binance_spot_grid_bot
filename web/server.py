@@ -26,14 +26,24 @@ from binance_sdk_spot.spot import Spot
 config_rest = ConfigurationRestAPI(base_path=SPOT_REST_API_PROD_URL)
 spot_client = Spot(config_rest_api=config_rest)
 
+# 全局價格快取變數，防止多人同時在線刷爆幣安 API 權重
+_price_cache = {"price": 0.0, "time": 0.0}
+
 def get_current_price():
-    """獲取最新幣價，失敗則傳回 0.0"""
+    """獲取最新幣價，失敗則傳回 0.0，具備 5 秒快取防刷機制。"""
+    now = time.time()
+    if now - _price_cache["time"] < 5.0 and _price_cache["price"] > 0:
+        return _price_cache["price"]
+
     try:
         res = spot_client.rest_api.ticker_price(symbol=config.SYMBOL)
         data = res.data().actual_instance
-        return float(data.price)
+        price = float(data.price)
+        _price_cache["price"] = price
+        _price_cache["time"] = now
+        return price
     except Exception:
-        return 0.0
+        return _price_cache["price"]  # 獲取失敗時返回快取中的舊價格
 
 def get_profit_by_days(days):
     """計算指定天數內的總利潤 (以本地時間為準)"""
