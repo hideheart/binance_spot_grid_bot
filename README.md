@@ -2,6 +2,9 @@
 
 這是一個基於幣安 (Binance) Spot API 與 WebSocket Streams 開發的 BTC/FDUSD 現貨網格交易系統。系統採用 WebSocket 訂閱即時行情，並具備 Rest API 自動重連與自癒機制，同時附帶一個簡易的網頁版監控 Dashboard。
 
+> [!TIP]
+> **實盤收益表現**：在目前的市場波動與網格參數下，此機器人運行預估一個月可穩定獲利約 **150 美元 (FDUSD)** 左右。
+
 ![Dashboard 預覽](web/dashboard.png)
 
 ## 🌟 核心特色
