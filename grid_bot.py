@@ -370,11 +370,14 @@ class GridBot:
         while True:
             try:
                 logging.info("正在建立 WebSocket 連線...")
-                connection = await self.ws_client.websocket_streams.create_connection()
+                # 每次重新建立客戶端，以防內部的連線池或事件迴圈狀態損壞
+                ws_client = Spot(config_ws_streams=self.configuration_ws)
+                connection = await ws_client.websocket_streams.create_connection()
                 # 訂閱 mini_ticker 串流 (小寫交易對名稱)
                 stream = await connection.mini_ticker(symbol=config.SYMBOL.lower())
                 
-                self.last_ws_message_time = time.time()
+                # 記錄這次連線建立成功的時間
+                conn_established_time = time.time()
                 
                 def on_msg(data):
                     try:
@@ -389,7 +392,12 @@ class GridBot:
                 # 保持等待直到連接斷開，並加上心跳超時機制 (120秒無數據即視為斷訊)
                 while not connection.close_initiated:
                     await asyncio.sleep(2)
-                    if time.time() - self.last_ws_message_time > 120:
+                    now = time.time()
+                    # 寬限期：如果連線剛建立不到 15 秒，不進行超時判定，給予時間接收第一筆數據
+                    if now - conn_established_time < 15:
+                        continue
+                    
+                    if now - self.last_ws_message_time > 120:
                         logging.warning("WebSocket 超過 120 秒未收到行情數據，判定為半開/假連線狀態，主動中斷以觸發重連。")
                         try:
                             await connection.close()
