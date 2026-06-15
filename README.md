@@ -68,8 +68,9 @@ pip install -r requirements.txt
    BINANCE_API_KEY=您的幣安API金鑰
    BINANCE_API_SECRET=您的幣安API私鑰
    ```
-   > [!IMPORTANT]
-   > **請絕對不要將 `.env` 檔案提交到公開的 Git 倉庫！** 專案的 `.gitignore` 檔案已預設將其排除，請務必保持其排除狀態以維護您的帳戶資產安全。
+
+> [!IMPORTANT]
+> **請絕對不要將 `.env` 檔案提交到公開的 Git 倉庫！** 專案的 `.gitignore` 檔案已預設將其排除，請務必保持其排除狀態以維護您的帳戶資產安全。
 
 ### 4. 自訂網格參數 (選用)
 您可以編輯 [`config.py`](file:///d:/GitRepo/Binance/現貨網格/config.py) 來調整網格運行參數以符合您的投資策略：
