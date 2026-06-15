@@ -33,6 +33,9 @@
 
 ## 🛠️ 安裝與設定說明
 
+> [!NOTE]
+> 如果您還沒有幣安 (Binance) 帳戶，歡迎使用邀請碼 **`CLICK168`** 註冊以享有手續費優惠，或直接點擊 [幣安推薦註冊連結](https://accounts.binance.com/register?ref=CLICK168) 進行註冊。
+
 ### 1. 準備環境
 本專案建議使用 Python 3.10+。請於專案目錄下建立並啟用虛擬環境（建議使用 `uv` 或 `venv`）：
 ```bash
