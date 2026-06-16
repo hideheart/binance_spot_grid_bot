@@ -240,6 +240,35 @@
             }
         }
 
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+                padding: 16px;
+            }
+
+            .logo-section {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+                gap: 12px;
+            }
+
+            .header-links {
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .price-info {
+                width: 100%;
+                justify-content: space-between;
+                border-top: 1px solid var(--card-border);
+                padding-top: 12px;
+            }
+        }
+
         .chart-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
