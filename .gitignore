@@ -2,6 +2,8 @@
 .env
 .env.local
 .env.*
+!.env.example
+
 
 # 資料庫檔案 (SQLite 及其交易日誌)
 *.db
