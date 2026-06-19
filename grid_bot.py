@@ -20,6 +20,7 @@ from binance_sdk_spot.rest_api.models import NewOrderSideEnum, NewOrderTypeEnum,
 
 import config
 import db
+from binance_common.websocket import global_stream_connections
 
 # 建立 log 資料夾
 log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "log")
@@ -368,11 +369,23 @@ class GridBot:
     async def websocket_loop(self):
         """WebSocket 行情行情訂閱循環，支援自動斷線重連。"""
         while True:
+            # 重連前清理舊連線與狀態
+            try:
+                if hasattr(self, 'ws_client') and self.ws_client:
+                    logging.info("清理舊的 WebSocket 連線與全域訂閱狀態...")
+                    await self.ws_client.websocket_streams.close_connection()
+            except Exception as e:
+                logging.debug(f"清理舊連線失敗 (這可能是正常的): {e}")
+            
+            # 清理全域 stream 對應關係，確保重新訂閱時不會被 sdk 過濾掉
+            stream_name = f"{config.SYMBOL.lower()}@miniTicker"
+            global_stream_connections.stream_connections_map.pop(stream_name, None)
+            
             try:
                 logging.info("正在建立 WebSocket 連線...")
                 # 每次重新建立客戶端，以防內部的連線池或事件迴圈狀態損壞
-                ws_client = Spot(config_ws_streams=self.configuration_ws)
-                connection = await ws_client.websocket_streams.create_connection()
+                self.ws_client = Spot(config_ws_streams=self.configuration_ws)
+                connection = await self.ws_client.websocket_streams.create_connection()
                 # 訂閱 mini_ticker 串流 (小寫交易對名稱)
                 stream = await connection.mini_ticker(symbol=config.SYMBOL.lower())
                 
@@ -390,8 +403,15 @@ class GridBot:
                 logging.info("WebSocket 訂閱行情成功。")
                 
                 # 保持等待直到連接斷開，並加上心跳超時機制 (120秒無數據即視為斷訊)
-                while not connection.close_initiated:
+                # 同時監控底層連線狀態
+                while True:
                     await asyncio.sleep(2)
+                    
+                    # 1. 檢查底層 websocket 是否已斷開，若是則主動跳出以觸發重連
+                    if not connection.connections or any(conn.websocket.closed for conn in connection.connections):
+                        logging.warning("偵測到底層 WebSocket 連線已斷開，準備進行重連。")
+                        break
+                    
                     now = time.time()
                     # 寬限期：如果連線剛建立不到 15 秒，不進行超時判定，給予時間接收第一筆數據
                     if now - conn_established_time < 15:
@@ -399,10 +419,6 @@ class GridBot:
                     
                     if now - self.last_ws_message_time > 120:
                         logging.warning("WebSocket 超過 120 秒未收到行情數據，判定為半開/假連線狀態，主動中斷以觸發重連。")
-                        try:
-                            await connection.close()
-                        except Exception:
-                            pass
                         raise Exception("WebSocket 接收行情超時")
                     
             except Exception as e:
