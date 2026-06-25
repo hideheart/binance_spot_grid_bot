@@ -241,6 +241,10 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
             header {
                 flex-direction: column;
                 align-items: flex-start;
@@ -267,6 +271,100 @@
                 border-top: 1px solid var(--card-border);
                 padding-top: 12px;
             }
+
+            /* 卡片內邊距優化，留出更多螢幕寬度給內容 */
+            .kpi-card, .chart-card, .details-card {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .kpi-card .card-value {
+                font-size: 22px;
+            }
+
+            .details-card h2, .chart-card h2 {
+                font-size: 16px;
+                margin-bottom: 16px;
+            }
+
+            /* 網格運行狀態緊湊化 */
+            .stat-row {
+                padding: 10px 0;
+            }
+
+            .stat-label {
+                font-size: 13px;
+            }
+
+            .stat-value {
+                font-size: 14px;
+            }
+
+            /* 取消手機版的橫向滾動，改用卡片化排列 */
+            .table-responsive {
+                overflow-x: visible !important;
+                margin-top: 12px;
+            }
+
+            #recent-sales-table, #dca-table {
+                min-width: 100% !important;
+            }
+
+            /* 隱藏表格標頭 */
+            #dca-table thead, #recent-sales-table thead {
+                display: none;
+            }
+
+            /* 將表格行轉換為獨立卡片 */
+            #dca-table tbody, #recent-sales-table tbody {
+                display: block;
+                width: 100%;
+            }
+
+            #dca-table tr, #recent-sales-table tr {
+                display: flex;
+                flex-direction: column;
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                padding: 12px 16px;
+                margin-bottom: 16px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            #dca-table td, #recent-sales-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+                width: 100%;
+                font-size: 13px;
+                white-space: normal; /* 卡片內允許正常折行 */
+                text-align: right;
+            }
+
+            #dca-table td:last-child, #recent-sales-table td:last-child {
+                border-bottom: none;
+            }
+
+            /* 用 pseudo-elements 注入各欄位標籤 */
+            #dca-table td:nth-child(1)::before { content: "交易對"; color: var(--text-muted); font-weight: 400; }
+            #dca-table td:nth-child(2)::before { content: "定投頻率"; color: var(--text-muted); font-weight: 400; }
+            #dca-table td:nth-child(3)::before { content: "每次金額"; color: var(--text-muted); font-weight: 400; }
+            #dca-table td:nth-child(4)::before { content: "累計投資額"; color: var(--text-muted); font-weight: 400; }
+            #dca-table td:nth-child(5)::before { content: "持倉數量"; color: var(--text-muted); font-weight: 400; }
+            #dca-table td:nth-child(6)::before { content: "當前現價"; color: var(--text-muted); font-weight: 400; }
+            #dca-table td:nth-child(7)::before { content: "當前價值"; color: var(--text-muted); font-weight: 400; }
+            #dca-table td:nth-child(8)::before { content: "總盈虧"; color: var(--text-muted); font-weight: 400; }
+            #dca-table td:nth-child(9)::before { content: "下次定投時間"; color: var(--text-muted); font-weight: 400; }
+
+            #recent-sales-table td:nth-child(1)::before { content: "成交時間"; color: var(--text-muted); font-weight: 400; }
+            #recent-sales-table td:nth-child(2)::before { content: "網格格點"; color: var(--text-muted); font-weight: 400; }
+            #recent-sales-table td:nth-child(3)::before { content: "買入價格"; color: var(--text-muted); font-weight: 400; }
+            #recent-sales-table td:nth-child(4)::before { content: "賣出價格"; color: var(--text-muted); font-weight: 400; }
+            #recent-sales-table td:nth-child(5)::before { content: "套利利潤"; color: var(--text-muted); font-weight: 400; }
         }
 
         .chart-card {
@@ -371,6 +469,43 @@
             color: var(--primary);
         }
 
+        /* Tab 切換按鈕樣式 */
+        .tab-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 6px;
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: var(--transition);
+        }
+
+        .tab-btn.active {
+            background: rgba(240, 185, 11, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(240, 185, 11, 0.25);
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+        }
+
         /* 表格樣式 */
         table {
             width: 100%;
@@ -410,6 +545,25 @@
             color: var(--success);
             font-weight: 600;
         }
+
+        /* 響應式表格容器 */
+        .table-responsive {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 12px;
+        }
+
+        /* 針對小螢幕限制表格最小寬度以防字體重疊 */
+        #recent-sales-table {
+            min-width: 550px;
+        }
+
+        #dca-table {
+            min-width: 850px;
+        }
     </style>
 </head>
 <body>
@@ -440,82 +594,123 @@
         </div>
     </header>
 
-    <!-- KPI 數據看板 -->
-    <div class="kpi-grid">
-        <div class="kpi-card total-profit">
-            <div class="card-title">累計總獲利</div>
-            <div class="card-value" id="profit-total">0.0000<span class="card-unit">FDUSD</span></div>
+    <!-- Tab 切換選單 -->
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="switchTab('grid')">網格交易系統</button>
+        <button class="tab-btn" onclick="switchTab('dca')">多幣種定投系統</button>
+    </div>
+
+    <!-- 網格交易系統區塊 -->
+    <div id="grid-section">
+        <!-- KPI 數據看板 -->
+        <div class="kpi-grid">
+            <div class="kpi-card total-profit">
+                <div class="card-title">累計總獲利</div>
+                <div class="card-value" id="profit-total">0.0000<span class="card-unit">FDUSD</span></div>
+            </div>
+            <div class="kpi-card today-profit">
+                <div class="card-title">今日獲利</div>
+                <div class="card-value" id="profit-today">0.0000<span class="card-unit">FDUSD</span></div>
+            </div>
+            <div class="kpi-card d7-profit">
+                <div class="card-title">近 7 天獲利</div>
+                <div class="card-value" id="profit-7d">0.0000<span class="card-unit">FDUSD</span></div>
+            </div>
+            <div class="kpi-card d30-profit">
+                <div class="card-title">近 30 天獲利</div>
+                <div class="card-value" id="profit-30d">0.0000<span class="card-unit">FDUSD</span></div>
+            </div>
         </div>
-        <div class="kpi-card today-profit">
-            <div class="card-title">今日獲利</div>
-            <div class="card-value" id="profit-today">0.0000<span class="card-unit">FDUSD</span></div>
+
+        <!-- 圖表區 -->
+        <div class="chart-container">
+            <div class="chart-card">
+                <h2>30日累積收益走向 (FDUSD)</h2>
+                <div class="chart-wrapper">
+                    <canvas id="cumulativeChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2>30日每日收益統計 (FDUSD)</h2>
+                <div class="chart-wrapper">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
         </div>
-        <div class="kpi-card d7-profit">
-            <div class="card-title">近 7 天獲利</div>
-            <div class="card-value" id="profit-7d">0.0000<span class="card-unit">FDUSD</span></div>
-        </div>
-        <div class="kpi-card d30-profit">
-            <div class="card-title">近 30 天獲利</div>
-            <div class="card-value" id="profit-30d">0.0000<span class="card-unit">FDUSD</span></div>
+
+        <!-- 詳細統計與交易紀錄 -->
+        <div class="details-grid">
+            <div class="details-card">
+                <h2>網格運行狀態</h2>
+                <div class="stat-row">
+                    <div class="stat-label">等待買入掛單 (PENDING_BUY)</div>
+                    <div class="stat-value"><span class="badge badge-pending" id="stat-pending-buy">0</span></div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label">已買入待掛賣 (FILLED_BUY)</div>
+                    <div class="stat-value"><span class="badge badge-buy" id="stat-filled-buy">0</span></div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label">等待賣出掛單 (PENDING_SELL)</div>
+                    <div class="stat-value"><span class="badge badge-sell" id="stat-pending-sell">0</span></div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label">已成交套利 (FILLED_SELL)</div>
+                    <div class="stat-value"><span class="badge" style="background:rgba(255,255,255,0.08);" id="stat-filled-sell">0</span></div>
+                </div>
+            </div>
+
+            <div class="details-card">
+                <h2>最近套利紀錄 (Recent Sales)</h2>
+                <div class="table-responsive">
+                    <table id="recent-sales-table">
+                        <thead>
+                            <tr>
+                                <th>時間</th>
+                                <th>網格格點</th>
+                                <th>買入價格</th>
+                                <th>賣出價格</th>
+                                <th>套利利潤</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted);">載入中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- 圖表區 -->
-    <div class="chart-container">
-        <div class="chart-card">
-            <h2>30日累積收益走向 (FDUSD)</h2>
-            <div class="chart-wrapper">
-                <canvas id="cumulativeChart"></canvas>
+    <!-- 定投交易系統區塊 -->
+    <div id="dca-section" style="display: none;">
+        <!-- 定投監控面板 -->
+        <div class="details-card" style="margin-top: 24px;">
+            <h2>多幣種定投 (DCA) 狀態監控</h2>
+            <div class="table-responsive">
+                <table id="dca-table">
+                    <thead>
+                        <tr>
+                            <th>交易對 (Symbol)</th>
+                            <th>定投頻率 (Frequency)</th>
+                            <th>每次金額 (Amount)</th>
+                            <th>累計投資額 (Total Invested)</th>
+                            <th>持倉數量 (Qty)</th>
+                            <th>當前現價 (Price)</th>
+                            <th>當前價值 (Value)</th>
+                            <th>總盈虧 (Profit/Loss)</th>
+                            <th>下次定投時間 (Next Time)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="9" style="text-align: center; color: var(--text-muted);">載入中...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </div>
-        <div class="chart-card">
-            <h2>30日每日收益統計 (FDUSD)</h2>
-            <div class="chart-wrapper">
-                <canvas id="dailyChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- 詳細統計與交易紀錄 -->
-    <div class="details-grid">
-        <div class="details-card">
-            <h2>網格運行狀態</h2>
-            <div class="stat-row">
-                <div class="stat-label">等待買入掛單 (PENDING_BUY)</div>
-                <div class="stat-value"><span class="badge badge-pending" id="stat-pending-buy">0</span></div>
-            </div>
-            <div class="stat-row">
-                <div class="stat-label">已買入待掛賣 (FILLED_BUY)</div>
-                <div class="stat-value"><span class="badge badge-buy" id="stat-filled-buy">0</span></div>
-            </div>
-            <div class="stat-row">
-                <div class="stat-label">等待賣出掛單 (PENDING_SELL)</div>
-                <div class="stat-value"><span class="badge badge-sell" id="stat-pending-sell">0</span></div>
-            </div>
-            <div class="stat-row">
-                <div class="stat-label">已成交套利 (FILLED_SELL)</div>
-                <div class="stat-value"><span class="badge" style="background:rgba(255,255,255,0.08);" id="stat-filled-sell">0</span></div>
-            </div>
-        </div>
-
-        <div class="details-card">
-            <h2>最近套利紀錄 (Recent Sales)</h2>
-            <table id="recent-sales-table">
-                <thead>
-                    <tr>
-                        <th>時間</th>
-                        <th>網格格點</th>
-                        <th>買入價格</th>
-                        <th>賣出價格</th>
-                        <th>套利利潤</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="5" style="text-align: center; color: var(--text-muted);">載入中...</td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     </div>
 
@@ -670,12 +865,72 @@
             }
         }
 
+        // 載入定投數據
+        async function fetchDCA() {
+            try {
+                const response = await fetch('/api/dca');
+                const data = await response.json();
+                
+                const tbody = document.querySelector('#dca-table tbody');
+                tbody.innerHTML = '';
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">尚未配置定投計劃或尚無定投數據</td></tr>`;
+                } else {
+                    data.forEach(dca => {
+                        const tr = document.createElement('tr');
+                        const profitClass = dca.profit >= 0 ? 'profit-pos' : 'table-price';
+                        const profitStyle = dca.profit >= 0 ? '' : 'color: var(--danger); font-weight: 600;';
+                        const profitSign = dca.profit >= 0 ? '+' : '';
+                        const profitPercentStr = dca.profit_percent >= 0 ? ` (+${dca.profit_percent.toFixed(2)}%)` : ` (${dca.profit_percent.toFixed(2)}%)`;
+                        
+                        tr.innerHTML = `
+                            <td style="font-weight: 600; color: var(--primary);">${dca.symbol}</td>
+                            <td>${dca.frequency}</td>
+                            <td>${dca.amount_per_time.toFixed(2)} FDUSD</td>
+                            <td>${dca.total_invested.toFixed(4)} FDUSD</td>
+                            <td>${dca.total_qty.toFixed(6)}</td>
+                            <td>${dca.current_price.toFixed(4)}</td>
+                            <td>${dca.current_value.toFixed(4)} FDUSD</td>
+                            <td class="${profitClass}" style="${profitStyle}">${profitSign}${dca.profit.toFixed(4)} FDUSD${profitPercentStr}</td>
+                            <td class="table-time">${formatTimestamp(dca.next_execution_time)}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('獲取 DCA 數據失敗:', error);
+            }
+        }
+
+        // Tab 切換邏輯
+        function switchTab(tabName) {
+            const gridSec = document.getElementById('grid-section');
+            const dcaSec = document.getElementById('dca-section');
+            const btns = document.querySelectorAll('.tab-btn');
+            
+            if (tabName === 'grid') {
+                gridSec.style.display = 'block';
+                dcaSec.style.display = 'none';
+                btns[0].classList.add('active');
+                btns[1].classList.remove('active');
+            } else {
+                gridSec.style.display = 'none';
+                dcaSec.style.display = 'block';
+                btns[0].classList.remove('active');
+                btns[1].classList.add('active');
+            }
+        }
+
         // 頁面載入執行一次
         fetchSummary();
         fetchCharts();
+        fetchDCA();
+        switchTab('grid');
 
-        // 設定每 5 秒刷新一次
-        setInterval(fetchSummary, 5000);
+        // 設定每 60 秒刷新一次
+        setInterval(fetchSummary, 60000);
+        setInterval(fetchDCA, 60000);
         // 圖表每 60 秒更新一次即可
         setInterval(fetchCharts, 60000);
     </script>

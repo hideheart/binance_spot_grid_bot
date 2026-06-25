@@ -27,23 +27,27 @@ config_rest = ConfigurationRestAPI(base_path=SPOT_REST_API_PROD_URL)
 spot_client = Spot(config_rest_api=config_rest)
 
 # 全局價格快取變數，防止多人同時在線刷爆幣安 API 權重
-_price_cache = {"price": 0.0, "time": 0.0}
+_multi_price_cache = {}
 
-def get_current_price():
-    """獲取最新幣價，失敗則傳回 0.0，具備 5 秒快取防刷機制。"""
+def get_symbol_price(symbol: str) -> float:
+    """獲取指定交易對的最新價格，具備 60 秒快取防刷機制。"""
     now = time.time()
-    if now - _price_cache["time"] < 5.0 and _price_cache["price"] > 0:
-        return _price_cache["price"]
+    cache = _multi_price_cache.get(symbol)
+    if cache and (now - cache["time"] < 60.0) and cache["price"] > 0:
+        return cache["price"]
 
     try:
-        res = spot_client.rest_api.ticker_price(symbol=config.SYMBOL)
+        res = spot_client.rest_api.ticker_price(symbol=symbol)
         data = res.data().actual_instance
         price = float(data.price)
-        _price_cache["price"] = price
-        _price_cache["time"] = now
+        _multi_price_cache[symbol] = {"price": price, "time": now}
         return price
     except Exception:
-        return _price_cache["price"]  # 獲取失敗時返回快取中的舊價格
+        return cache["price"] if cache else 0.0
+
+def get_current_price():
+    """獲取網格主交易對的最新價格。"""
+    return get_symbol_price(config.SYMBOL)
 
 def get_profit_by_days(days):
     """計算指定天數內的總利潤 (以本地時間為準)"""
@@ -217,13 +221,88 @@ class DashboardHTTPHandler(BaseHTTPRequestHandler):
             active_grids = db.get_active_grids()
             self.wfile.write(json.dumps(active_grids).encode("utf-8"))
             
+        elif self.path == "/api/dca":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            
+            dca_data = []
+            try:
+                import dca_config
+                import dca_db
+                dca_db_path = dca_db.get_db_path()
+                if os.path.exists(dca_db_path):
+                    with sqlite3.connect(dca_db_path) as conn:
+                        conn.row_factory = sqlite3.Row
+                        for plan in dca_config.DCA_PLANS:
+                            symbol = plan["symbol"]
+                            times_per_day = plan["times_per_day"]
+                            amount_per_time = plan["amount_per_time"]
+                            
+                            # 1. 累計投資額與持倉量
+                            summary = conn.execute('''
+                                SELECT SUM(filled_amount) as total_invested,
+                                       SUM(filled_qty) as total_qty
+                                FROM dca_tasks
+                                WHERE symbol = ?
+                            ''', (symbol,)).fetchone()
+                            
+                            total_invested = summary["total_invested"] if summary["total_invested"] else 0.0
+                            total_qty = summary["total_qty"] if summary["total_qty"] else 0.0
+                            
+                            # 2. 獲取下一次定投時間
+                            latest_task = conn.execute('''
+                                SELECT next_execution_time FROM dca_tasks
+                                WHERE symbol = ?
+                                ORDER BY id DESC LIMIT 1
+                            ''', (symbol,)).fetchone()
+                            
+                            next_time = 0
+                            if latest_task:
+                                next_time = latest_task["next_execution_time"]
+                            
+                            # 3. 獲取實時價格與計算盈虧
+                            curr_price = get_symbol_price(symbol)
+                            curr_value = total_qty * curr_price
+                            profit = curr_value - total_invested
+                            
+                            profit_percent = 0.0
+                            if total_invested > 0:
+                                profit_percent = (profit / total_invested) * 100
+                            
+                            dca_data.append({
+                                "symbol": symbol,
+                                "frequency": f"一天 {times_per_day} 次",
+                                "amount_per_time": amount_per_time,
+                                "total_invested": round(total_invested, 4),
+                                "total_qty": round(total_qty, 6),
+                                "current_price": curr_price,
+                                "current_value": round(curr_value, 4),
+                                "profit": round(profit, 4),
+                                "profit_percent": round(profit_percent, 2),
+                                "next_execution_time": next_time
+                            })
+            except Exception as e:
+                print("獲取定投數據失敗:", e)
+                
+            self.wfile.write(json.dumps(dca_data).encode("utf-8"))
+            
         else:
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b"404 Not Found")
 
 def run_server(port=5000):
+    # 初始化網格資料庫
     db.init_db()
+    
+    # 主動初始化定投資料庫，確保資料表存在
+    try:
+        import dca_db
+        dca_db.init_db()
+    except Exception as e:
+        print("Dashboard 初始化定投資料庫失敗:", e)
+        
     server_address = ('127.0.0.1', port)
     httpd = HTTPServer(server_address, DashboardHTTPHandler)
     print(f"==================================================")
