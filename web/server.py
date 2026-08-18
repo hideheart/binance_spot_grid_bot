@@ -142,6 +142,7 @@ def get_grid_statistics():
             "filled_buy": stats.get("FILLED_BUY", 0),
             "pending_sell": stats.get("PENDING_SELL", 0),
             "filled_sell": stats.get("FILLED_SELL", 0),
+            "held_dust": stats.get("HELD_DUST", 0),
             "canceled": stats.get("CANCELED", 0)
         }
 

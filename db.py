@@ -61,17 +61,40 @@ def insert_buy_order(grid_price: float, buy_order_id: str, buy_price: float, buy
         conn.commit()
         return cursor.lastrowid
 
-def confirm_buy_order(buy_order_id: str, filled_price: float, filled_qty: float, filled_time: int = None):
-    """買入訂單成交，更新狀態為 FILLED_BUY。"""
+def confirm_buy_order(buy_order_id: str, filled_price: float, filled_qty: float, filled_time: int = None, as_dust: bool = False):
+    """買入訂單成交。名義金額不足最低掛單額時標為 HELD_DUST，否則 FILLED_BUY。"""
     db_path = get_db_path()
     now = int(time.time())
     f_time = filled_time if filled_time else now
+    status = 'HELD_DUST' if as_dust else 'FILLED_BUY'
     with sqlite3.connect(db_path) as conn:
         conn.execute('''
             UPDATE grid_orders 
-            SET status = 'FILLED_BUY', buy_filled_price = ?, buy_filled_qty = ?, buy_filled_time = ?, sell_qty = ?, updated_at = ?
+            SET status = ?, buy_filled_price = ?, buy_filled_qty = ?, buy_filled_time = ?, sell_qty = ?, updated_at = ?
             WHERE buy_order_id = ? AND status = 'PENDING_BUY'
-        ''', (filled_price, filled_qty, f_time, filled_qty, now, str(buy_order_id)))
+        ''', (status, filled_price, filled_qty, f_time, filled_qty, now, str(buy_order_id)))
+        conn.commit()
+
+def mark_held_dust(db_id: int):
+    """FILLED_BUY 名義金額不足，改標塵倉。"""
+    db_path = get_db_path()
+    now = int(time.time())
+    with sqlite3.connect(db_path) as conn:
+        conn.execute('''
+            UPDATE grid_orders SET status = 'HELD_DUST', updated_at = ?
+            WHERE id = ? AND status = 'FILLED_BUY'
+        ''', (now, db_id))
+        conn.commit()
+
+def promote_dust_to_filled_buy(db_id: int):
+    """塵倉名義金額已夠掛賣，恢復 FILLED_BUY。"""
+    db_path = get_db_path()
+    now = int(time.time())
+    with sqlite3.connect(db_path) as conn:
+        conn.execute('''
+            UPDATE grid_orders SET status = 'FILLED_BUY', updated_at = ?
+            WHERE id = ? AND status = 'HELD_DUST'
+        ''', (now, db_id))
         conn.commit()
 
 def cancel_buy_order(buy_order_id: str):
@@ -153,7 +176,7 @@ def get_active_grids() -> dict:
         conn.row_factory = sqlite3.Row
         rows = conn.execute('''
             SELECT * FROM grid_orders 
-            WHERE status IN ('PENDING_BUY', 'FILLED_BUY', 'PENDING_SELL')
+            WHERE status IN ('PENDING_BUY', 'FILLED_BUY', 'PENDING_SELL', 'HELD_DUST')
         ''').fetchall()
         # 轉成 dictionary, grid_price 映射到 row dict
         return {row['grid_price']: dict(row) for row in rows}

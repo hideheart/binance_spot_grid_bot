@@ -44,6 +44,8 @@
 ├── config.py           # 網格間距、單筆金額、精度等系統設定
 ├── db.py               # SQLite 資料庫操作模組 (網格資料庫)
 ├── grid_bot.py         # 網格交易核心主程式 (包含 Webhook 接收與自癒)
+├── run_all.py          # 一次啟動網格 + 定投 + Dashboard
+├── run_all.bat         # 整合啟動 Windows 指令檔
 ├── run_bot.bat         # 網格機器人 Windows 一鍵啟動指令檔
 ├── test_grid.py        # 網格邊界與計算邏輯測試檔
 │
@@ -95,6 +97,18 @@ pip install -r requirements.txt
 ---
 
 ## 🚀 啟動與參數配置
+
+### 一次啟動全部（建議）
+
+網格機器人、定投機器人與 Dashboard 可以同一個行程跑，不必開三個視窗：
+
+```bash
+python run_all.py
+```
+
+Windows 也可直接執行 `run_all.bat`。啟動後瀏覽器開啟 [http://localhost:5000](http://localhost:5000)。結束時按 `Ctrl+C`。
+
+仍可單獨啟動各服務（見下方 A / B 與 Dashboard 說明）。
 
 ### A. 運行現貨網格交易
 

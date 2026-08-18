@@ -26,7 +26,7 @@ os.makedirs(log_dir, exist_ok=True)
 log_file_path = os.path.join(log_dir, "dca_bot.log")
 
 # 設定日誌（每天午夜輪轉，保留 30 天歷史紀錄）
-log_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+log_formatter = logging.Formatter('%(asctime)s [DCA] [%(levelname)s] %(message)s')
 
 file_handler = logging.handlers.TimedRotatingFileHandler(
     filename=log_file_path,
@@ -40,10 +40,12 @@ file_handler.setFormatter(log_formatter)
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(log_formatter)
 
-logger = logging.getLogger()
+logger = logging.getLogger("dca_bot")
 logger.setLevel(logging.INFO)
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
+logger.propagate = False
+if not logger.handlers:
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
 
 class DCABot:
     def __init__(self):
@@ -60,7 +62,7 @@ class DCABot:
         
         # 3. 儲存各個交易對的規格規格資訊
         self.symbol_specs = {}
-        logging.info("幣安 DCA 定投客戶端初始化完成。")
+        logger.info("幣安 DCA 定投客戶端初始化完成。")
 
     async def _run_async(self, func, *args, **kwargs):
         """在執行器中運行同步阻塞函數。"""
@@ -73,7 +75,7 @@ class DCABot:
             return self.symbol_specs[symbol]
         
         try:
-            logging.info(f"正在獲取 {symbol} 的交易所規格資訊...")
+            logger.info(f"正在獲取 {symbol} 的交易所規格資訊...")
             res = await self._run_async(self.client.rest_api.exchange_info, symbols=f'["{symbol}"]')
             data = res.data()
             if not data.symbols:
@@ -102,10 +104,10 @@ class DCABot:
                 "min_notional": min_notional
             }
             self.symbol_specs[symbol] = specs
-            logging.info(f"{symbol} 規格載入成功: 小數價格={price_decimals}, 小數數量={qty_decimals}, 最小交易量={min_notional} FDUSD")
+            logger.info(f"{symbol} 規格載入成功: 小數價格={price_decimals}, 小數數量={qty_decimals}, 最小交易量={min_notional} FDUSD")
             return specs
         except Exception as e:
-            logging.error(f"獲取 {symbol} 交易所規格規格失敗: {e}，使用預設安全值")
+            logger.error(f"獲取 {symbol} 交易所規格規格失敗: {e}，使用預設安全值")
             specs = {
                 "price_decimals": 2,
                 "qty_decimals": 5 if "BTC" in symbol else 4,
@@ -124,7 +126,7 @@ class DCABot:
                 "ask_price": float(act.ask_price)
             }
         except Exception as e:
-            logging.error(f"獲取 {symbol} 盤口資訊失敗: {e}")
+            logger.error(f"獲取 {symbol} 盤口資訊失敗: {e}")
             raise
 
     def place_limit_maker_order(self, symbol: str, price: float, qty: float) -> str:
@@ -135,7 +137,7 @@ class DCABot:
         side_enum = NewOrderSideEnum["BUY"].value
         type_enum = NewOrderTypeEnum["LIMIT_MAKER"].value
         
-        logging.info(f"[{symbol}] 發送 LIMIT_MAKER 買單 | 價格: {formatted_price} | 數量: {formatted_qty}")
+        logger.info(f"[{symbol}] 發送 LIMIT_MAKER 買單 | 價格: {formatted_price} | 數量: {formatted_qty}")
         
         res = self.client.rest_api.new_order(
             symbol=symbol,
@@ -146,21 +148,21 @@ class DCABot:
         )
         data = res.data()
         order_id = str(data.order_id)
-        logging.info(f"[{symbol}] 掛單成功。幣安 Order ID: {order_id}")
+        logger.info(f"[{symbol}] 掛單成功。幣安 Order ID: {order_id}")
         return order_id
 
     def cancel_order(self, symbol: str, order_id: str) -> bool:
         """撤銷訂單。"""
         try:
-            logging.info(f"[{symbol}] 正在撤銷訂單: {order_id}")
+            logger.info(f"[{symbol}] 正在撤銷訂單: {order_id}")
             self.client.rest_api.delete_order(
                 symbol=symbol,
                 order_id=int(order_id)
             )
-            logging.info(f"[{symbol}] 訂單 {order_id} 撤銷成功。")
+            logger.info(f"[{symbol}] 訂單 {order_id} 撤銷成功。")
             return True
         except Exception as e:
-            logging.error(f"[{symbol}] 撤銷訂單 {order_id} 失敗: {e}")
+            logger.error(f"[{symbol}] 撤銷訂單 {order_id} 失敗: {e}")
             return False
 
     def query_order(self, symbol: str, order_id: str) -> dict:
@@ -182,7 +184,7 @@ class DCABot:
                 "cum_quote": cum_quote
             }
         except Exception as e:
-            logging.error(f"[{symbol}] 查詢訂單 {order_id} 失敗: {e}")
+            logger.error(f"[{symbol}] 查詢訂單 {order_id} 失敗: {e}")
             raise
 
     async def run_dca_worker(self, plan: dict):
@@ -192,7 +194,7 @@ class DCABot:
         times_per_day = plan["times_per_day"]
         interval_seconds = int(86400 / times_per_day)
         
-        logging.info(f"[{symbol}] 定投 Worker 已啟動。頻率: 每天 {times_per_day} 次 (每 {interval_seconds} 秒)，每次 {amount_per_time} FDUSD")
+        logger.info(f"[{symbol}] 定投 Worker 已啟動。頻率: 每天 {times_per_day} 次 (每 {interval_seconds} 秒)，每次 {amount_per_time} FDUSD")
         
         # 獲取規格
         specs = await self.update_symbol_specs(symbol)
@@ -211,13 +213,13 @@ class DCABot:
                         
                         if not last_task:
                             # 第一次啟動，立即定投
-                            logging.info(f"[{symbol}] 找不到定投歷史記錄，建立首個定投任務...")
+                            logger.info(f"[{symbol}] 找不到定投歷史記錄，建立首個定投任務...")
                             should_start = True
                         else:
                             now = int(time.time())
                             elapsed = now - last_task["created_at"]
                             if elapsed >= interval_seconds:
-                                logging.info(f"[{symbol}] 距離上次定投已過去 {elapsed} 秒，到了定投時間。")
+                                logger.info(f"[{symbol}] 距離上次定投已過去 {elapsed} 秒，到了定投時間。")
                                 should_start = True
                         
                         if should_start:
@@ -232,7 +234,7 @@ class DCABot:
                                 "filled_qty": 0.0,
                                 "status": "RUNNING"
                             }
-                            logging.info(f"[{symbol}] 新建定投任務 ID: {task_id}")
+                            logger.info(f"[{symbol}] 新建定投任務 ID: {task_id}")
                 
                 # 2. 如果有執行中的定投任務，處理掛單與追價
                 if task:
@@ -241,7 +243,7 @@ class DCABot:
                     
                     # 若剩餘金額小於最小交易金額限制，視為已買齊
                     if remaining_amount < min_notional:
-                        logging.info(f"[{symbol}] 剩餘未購買金額 {remaining_amount:.4f} FDUSD 小於交易所最低限制 {min_notional}，本輪定投任務結案！")
+                        logger.info(f"[{symbol}] 剩餘未購買金額 {remaining_amount:.4f} FDUSD 小於交易所最低限制 {min_notional}，本輪定投任務結案！")
                         async with self.db_lock:
                             dca_db.complete_task(task_id)
                         continue
@@ -275,7 +277,7 @@ class DCABot:
                                 qty = qty_ceil
                                 actual_notional = actual_notional_ceil
                             else:
-                                logging.warning(f"[{symbol}] 金額受限於交易精度，無法繼續掛單 (剩餘 {remaining_amount:.4f}，向上取整為 {actual_notional_ceil:.4f} 超出容許範圍)，標記任務完成。")
+                                logger.warning(f"[{symbol}] 金額受限於交易精度，無法繼續掛單 (剩餘 {remaining_amount:.4f}，向上取整為 {actual_notional_ceil:.4f} 超出容許範圍)，標記任務完成。")
                                 async with self.db_lock:
                                     dca_db.complete_task(task_id)
                                 continue
@@ -286,7 +288,7 @@ class DCABot:
                             async with self.db_lock:
                                 dca_db.add_order(task_id, order_id, bid_price, qty)
                         except Exception as e:
-                            logging.error(f"[{symbol}] 掛 LIMIT_MAKER 買單失敗: {e}，將於下次輪詢重試")
+                            logger.error(f"[{symbol}] 掛 LIMIT_MAKER 買單失敗: {e}，將於下次輪詢重試")
                             
                     else:
                         # 有活躍掛單，查詢交易所狀態
@@ -299,13 +301,13 @@ class DCABot:
                             cum_quote = info["cum_quote"]
                             
                             if status == "FILLED":
-                                logging.info(f"[{symbol}] 掛單已全部成交！Order ID: {order_id} | 成交均價: {filled_price} | 成交數量: {filled_qty}")
+                                logger.info(f"[{symbol}] 掛單已全部成交！Order ID: {order_id} | 成交均價: {filled_price} | 成交數量: {filled_qty}")
                                 async with self.db_lock:
                                     dca_db.update_order_status(order_id, "FILLED", filled_price, filled_qty)
                                     dca_db.update_task_progress(task_id, cum_quote, filled_qty)
                                     
                             elif status in ["CANCELED", "EXPIRED", "REJECTED"]:
-                                logging.warning(f"[{symbol}] 訂單 {order_id} 已在交易所取消/過期 (狀態: {status})")
+                                logger.warning(f"[{symbol}] 訂單 {order_id} 已在交易所取消/過期 (狀態: {status})")
                                 async with self.db_lock:
                                     dca_db.update_order_status(order_id, status, filled_price, filled_qty)
                                     dca_db.update_task_progress(task_id, cum_quote, filled_qty)
@@ -317,7 +319,7 @@ class DCABot:
                                 elapsed = now - order_time
                                 
                                 if elapsed >= dca_config.ORDER_TIMEOUT:
-                                    logging.info(f"[{symbol}] 訂單 {order_id} 掛單已超過 {elapsed} 秒未完全成交，準備撤單重掛追價...")
+                                    logger.info(f"[{symbol}] 訂單 {order_id} 掛單已超過 {elapsed} 秒未完全成交，準備撤單重掛追價...")
                                     # 撤單
                                     if await self._run_async(self.cancel_order, symbol, order_id):
                                         # 撤銷成功後，一定要再次查詢，獲取最終成交數據
@@ -325,25 +327,25 @@ class DCABot:
                                         final_qty = final_info["filled_qty"]
                                         final_cum_quote = final_info["cum_quote"]
                                         
-                                        logging.info(f"[{symbol}] 訂單已確認撤銷。最終成交數量: {final_qty}，累計金額: {final_cum_quote}")
+                                        logger.info(f"[{symbol}] 訂單已確認撤銷。最終成交數量: {final_qty}，累計金額: {final_cum_quote}")
                                         async with self.db_lock:
                                             dca_db.update_order_status(order_id, "CANCELED", final_info["filled_price"], final_qty)
                                             dca_db.update_task_progress(task_id, final_cum_quote, final_qty)
                                     else:
-                                        logging.error(f"[{symbol}] 撤銷訂單 {order_id} 失敗，將在下一輪輪詢重新嘗試")
+                                        logger.error(f"[{symbol}] 撤銷訂單 {order_id} 失敗，將在下一輪輪詢重新嘗試")
                         except Exception as e:
-                            logging.error(f"[{symbol}] 處理掛單 {order_id} 狀態異常: {e}")
+                            logger.error(f"[{symbol}] 處理掛單 {order_id} 狀態異常: {e}")
             
             except Exception as e:
-                logging.error(f"[{symbol}] Worker 發生異常: {e}")
-                logging.error(traceback.format_exc())
+                logger.error(f"[{symbol}] Worker 發生異常: {e}")
+                logger.error(traceback.format_exc())
             
             # 定期輪詢
             await asyncio.sleep(dca_config.POLL_INTERVAL)
 
     async def start(self):
         """啟動定投機器人。"""
-        logging.info("=== 幣安多幣種免手續費定投 (DCA) 機器人啟動 ===")
+        logger.info("=== 幣安多幣種免手續費定投 (DCA) 機器人啟動 ===")
         
         # 初始化資料庫
         dca_db.init_db()
@@ -360,4 +362,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(bot.start())
     except KeyboardInterrupt:
-        logging.info("偵測到手動中止訊號，定投機器人正常退出。")
+        logger.info("偵測到手動中止訊號，定投機器人正常退出。")

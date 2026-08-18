@@ -18,9 +18,10 @@ SYMBOL = 'BTCFDUSD'
 BASE_SYMBOL = 'BTC'
 QUOTE_SYMBOL = 'FDUSD'
 
-GRID_INTERVAL = 20.0     # 網格間距 (25 美元)
-TRADE_AMOUNT = 10.0       # 單筆交易金額 (5 FDUSD)
-GRID_NUM = 30            # 基準現價上下各掛 10 格
+GRID_INTERVAL = 20.0     # 網格間距 (FDUSD)
+TRADE_AMOUNT = 10.0       # 單筆交易金額 (FDUSD)
+GRID_NUM = 30            # 基準現價上下各掛的格數
+MIN_NOTIONAL = 5.0        # 幣安最小名義金額 (FDUSD)，低於此無法掛單
 
 # 資料庫檔案路徑
 DB_FILE = 'grid.db'

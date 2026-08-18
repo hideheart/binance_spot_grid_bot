@@ -142,5 +142,75 @@ class TestGridSystem(unittest.TestCase):
         self.assertEqual(len(canceled), 1)
         self.assertEqual(canceled[0]['buy_order_id'], 'BUY999')
 
+    def test_canceled_buy_with_fill_becomes_inventory(self):
+        """買單已部分成交後被交易所結束，應入帳而非標 CANCELED。"""
+        bot = GridBot()
+        row_id = db.insert_buy_order(70025.0, "BUY_PF", 70025.0, 0.00016)
+        row = db.get_orders_by_status(['PENDING_BUY'])[0]
+        outcome = bot.apply_buy_exchange_status(
+            row,
+            {"status": "CANCELED", "filled_price": 70025.0, "filled_qty": 0.00016},
+        )
+        self.assertEqual(outcome, "filled")
+        active = db.get_active_grids()
+        self.assertEqual(active[70025.0]['status'], 'FILLED_BUY')
+        self.assertAlmostEqual(active[70025.0]['buy_filled_qty'], 0.00016)
+        self.assertAlmostEqual(active[70025.0]['sell_qty'], 0.00016)
+        self.assertEqual(row_id, active[70025.0]['id'])
+
+    def test_canceled_buy_below_min_notional_is_dust(self):
+        """部分成交名義金額 < 5 FDUSD 時標塵倉，仍佔格、不掛賣。"""
+        bot = GridBot()
+        db.insert_buy_order(70025.0, "BUY_DUST", 70025.0, 0.00016)
+        row = db.get_orders_by_status(['PENDING_BUY'])[0]
+        # 0.00007 * 70075 ≈ 4.91 < 5
+        outcome = bot.apply_buy_exchange_status(
+            row,
+            {"status": "CANCELED", "filled_price": 70025.0, "filled_qty": 0.00007},
+        )
+        self.assertEqual(outcome, "dust")
+        active = db.get_active_grids()
+        self.assertEqual(active[70025.0]['status'], 'HELD_DUST')
+        self.assertAlmostEqual(active[70025.0]['buy_filled_qty'], 0.00007)
+        self.assertTrue(bot.can_place_limit(70075.0, 0.00016))
+        self.assertFalse(bot.can_place_limit(70075.0, 0.00007))
+
+    def test_canceled_buy_zero_fill_stays_canceled(self):
+        bot = GridBot()
+        db.insert_buy_order(70025.0, "BUY_ZERO", 70025.0, 0.00016)
+        row = db.get_orders_by_status(['PENDING_BUY'])[0]
+        outcome = bot.apply_buy_exchange_status(
+            row,
+            {"status": "EXPIRED", "filled_price": 70025.0, "filled_qty": 0.0},
+        )
+        self.assertEqual(outcome, "canceled")
+        self.assertNotIn(70025.0, db.get_active_grids())
+
+    def test_partial_buy_is_not_closed(self):
+        bot = GridBot()
+        db.insert_buy_order(70025.0, "BUY_OPEN", 70025.0, 0.00016)
+        row = db.get_orders_by_status(['PENDING_BUY'])[0]
+        outcome = bot.apply_buy_exchange_status(
+            row,
+            {"status": "PARTIALLY_FILLED", "filled_price": 70025.0, "filled_qty": 0.00005},
+        )
+        self.assertEqual(outcome, "partial")
+        self.assertEqual(db.get_active_grids()[70025.0]['status'], 'PENDING_BUY')
+
+    def test_canceled_sell_partial_reverts_not_closes(self):
+        """賣單部分成交後結束：本次不拆剩餘量，退回 FILLED_BUY。"""
+        bot = GridBot()
+        row_id = db.insert_buy_order(70025.0, "BUY_S", 70025.0, 0.00016)
+        db.confirm_buy_order("BUY_S", 70025.0, 0.00016)
+        db.set_pending_sell(row_id, "SELL_PF")
+        row = db.get_orders_by_status(['PENDING_SELL'])[0]
+        outcome = bot.apply_sell_exchange_status(
+            row,
+            {"status": "CANCELED", "filled_price": 70075.0, "filled_qty": 0.00006},
+        )
+        self.assertEqual(outcome, "reverted")
+        self.assertEqual(db.get_active_grids()[70025.0]['status'], 'FILLED_BUY')
+        self.assertEqual(len(db.get_orders_by_status(['FILLED_SELL'])), 0)
+
 if __name__ == "__main__":
     unittest.main()
